@@ -1,0 +1,9 @@
+ELASTIC_URL=url-base-to-elasticsearch
+ELASTIC_PORT=9200
+ELASTIC_USER=elasticsearch-userid
+ELASTIC_PW=elasticsearch-password
+ELASTIC_INDEX_NAME=dsw-dmps-test
+DSW_URL=https://url-to-dsw-incl-port:3443
+DSW_USER=dsw-userid
+DSW_PW=dsw-password
+LOGFILE=dsw2es.log
