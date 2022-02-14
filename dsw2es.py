@@ -232,11 +232,14 @@ for i in data['_embedded']['questionnaires']:
 
         # Projects and funding
 
+        md['hasProject'] = 'false'
+
         if '1e85da40-bbfc-4180-903e-6c569ed2da38.c3dabaaf-c946-4a0d-889c-ede966f97667' in data_full['replies']:
             projects = data_full['replies']['1e85da40-bbfc-4180-903e-6c569ed2da38.c3dabaaf-c946-4a0d-889c-ede966f97667']
 
             if projects:
                 ps = []
+                md['hasProject'] = 'true'
                 for p in projects['value']['value']:
                     pt = {}
                     project = '1e85da40-bbfc-4180-903e-6c569ed2da38.c3dabaaf-c946-4a0d-889c-ede966f97667.' + p
@@ -328,6 +331,7 @@ for i in data['_embedded']['questionnaires']:
                     data_full['replies']['8eb418fe-f415-44cd-8027-5fac5fc025c1.ab5a4fb6-0717-410d-91b1-f47998659572'][
                         'value']['value'] == 'd2c27c85-8e39-4a24-a483-3ca5156b5fc6':
                 ethical_issues_exist = 'yes'
+                md['hasPersonalData'] = 'true'
                 if '8eb418fe-f415-44cd-8027-5fac5fc025c1.ab5a4fb6-0717-410d-91b1-f47998659572.d2c27c85-8e39-4a24-a483-3ca5156b5fc6.41d5be8f-cc0c-4f8f-a20a-980e5d44609d' in \
                         data_full['replies']:
                     ethical_issues_desc = data_full['replies'][
@@ -339,16 +343,20 @@ for i in data['_embedded']['questionnaires']:
                         'value'][
                         'value'] == '43dd8b13-633f-4d06-9f45-4365e748da71':
                 ethical_issues_exist = 'no'
+                ethical_issues_exist = 'false'
 
         d['ethical_issues_exist'] = ethical_issues_exist
 
         # Dataset(s)
+
+        md['hasDatasets'] = 'false'
 
         if 'd5b27482-b598-4b8c-b534-417d4ad27394.4e0c1edf-660c-4ebf-81f5-9fa959dead30' in data_full['replies']:
             datasets = data_full['replies']['d5b27482-b598-4b8c-b534-417d4ad27394.4e0c1edf-660c-4ebf-81f5-9fa959dead30']
 
             if datasets:
                 dsts = []
+                md['hasDatasets'] = 'true'
                 dstname = ''
                 for dst in \
                         data_full['replies'][
@@ -431,7 +439,36 @@ for i in data['_embedded']['questionnaires']:
         else:
             print('NO DATASETS')
 
-        # Metadata (local)
+        # Additional metadata (local)
+
+        md['hasExistingData'] = 'false'
+        if '82fd0cce-2b41-423f-92ad-636d0872045c.efc80cc8-8318-4f8c-acb7-dc1c60e491c1' in data_full['replies']:
+            if data_full['replies']['82fd0cce-2b41-423f-92ad-636d0872045c.efc80cc8-8318-4f8c-acb7-dc1c60e491c1']['value']['value'] == '2663b978-5125-4224-9930-0a50dbe895c9':
+                md['hasExistingData'] = 'true'
+
+        md['hasCollectingNewData'] = 'false'
+        if 'b1df3c74-0b1f-4574-81c4-4cc2d780c1af.f87c331d-794a-42c8-a910-61a2a9110dab' in data_full['replies']:
+            if \
+            data_full['replies']['b1df3c74-0b1f-4574-81c4-4cc2d780c1af.f87c331d-794a-42c8-a910-61a2a9110dab']['value'][
+                'value'] == 'e4ca2d31-137a-46d3-96cd-3e9e8c5e9a76':
+                md['hasCollectingNewData'] = 'true'
+
+        md['hasCreatingNewData'] = 'false'
+        if 'b1df3c74-0b1f-4574-81c4-4cc2d780c1af.0561d9e5-8bbe-49c7-a656-5714d3c94078' in data_full['replies']:
+            if \
+                    data_full['replies']['b1df3c74-0b1f-4574-81c4-4cc2d780c1af.0561d9e5-8bbe-49c7-a656-5714d3c94078'][
+                        'value'][
+                        'value'] == '65da7ae7-5062-4667-9cb2-86c5d17c4473':
+                md['hasCreatingNewData'] = 'true'
+
+        md['hasNonEquipmentNewData'] = 'false'
+        if 'b1df3c74-0b1f-4574-81c4-4cc2d780c1af.f038bd46-ee4e-4f53-b7ea-482381c2c855' in data_full['replies']:
+            if \
+                    data_full['replies']['b1df3c74-0b1f-4574-81c4-4cc2d780c1af.f038bd46-ee4e-4f53-b7ea-482381c2c855'][
+                        'value'][
+                        'value'] == '4fd89b13-f33c-4858-8b25-ab6da271efc6':
+                md['hasNonEquipmentNewData'] = 'true'
+
         if '10a10ffd-bfe1-4c6b-bbb6-3dfb1e63a5d5.b7cb30ba-acb9-439e-88e0-08e2658b779e' in data_full['replies']:
             storage_needs_id = \
                 data_full['replies']['10a10ffd-bfe1-4c6b-bbb6-3dfb1e63a5d5.b7cb30ba-acb9-439e-88e0-08e2658b779e'][
