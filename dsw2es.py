@@ -121,6 +121,7 @@ for i in data['_embedded']['questionnaires']:
             else:
                 d['language'] = 'eng'
 
+        md['id'] = dmp_id
         if state:
             md['state'] = state
         if 'visibility' in i:
@@ -156,6 +157,7 @@ for i in data['_embedded']['questionnaires']:
                 for c in contributors['value']['value']:
                     ct = {}
                     affiliation_node = ''
+                    ct["affiliation"] = {}
 
                     contributor = '1e85da40-bbfc-4180-903e-6c569ed2da38.73d686bd-7939-412e-8631-502ee6d9ea7b.' + c
                     try:
@@ -196,6 +198,7 @@ for i in data['_embedded']['questionnaires']:
                             affiliation_other_id = data_full['replies'][affiliation_other]['value']['value']['id']
                             ct["affiliation"] = {"name": affiliation_other_name,
                                                  "affiliation_id": {"name": affiliation_other_id, "type": "ror"}}
+                            print('aff: ' + contributor_name + ', ' + str(ct['affiliation']))
                     except KeyError:
                         print('no affiliations');
                     try:
