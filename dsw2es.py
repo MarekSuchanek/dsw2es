@@ -78,10 +78,12 @@ data = json.loads(data)
 
 dmp = {}
 count = 0
+madmp_schema = "https://github.com/RDA-DMP-Common/RDA-DMP-Common-Standard/tree/master/examples/JSON/JSSON-schema/1.0"
 
 for i in data['_embedded']['questionnaires']:
     d = dict()
     md = dict()
+    d['schema'] = madmp_schema
     dmp_id = i['uuid']
     created_at = i['createdAt']
     if i['updatedAt']:
@@ -181,19 +183,19 @@ for i in data['_embedded']['questionnaires']:
 
                         if affiliation_node + '.d8efc3fb-9717-4566-9529-e89e71b1554d.d9c9674e-aa62-429f-a9b1-f2d151122249' in \
                                 data_full['replies']:
-                            ct["institution"] = {"name": "Chalmers University of Technology",
-                                                 "identifier": {"name": "https://ror.org/040wg7k59", "type": "ror"}}
+                            ct["affiliation"] = {"name": "Chalmers University of Technology",
+                                                 "affiliation_id": {"name": "https://ror.org/040wg7k59", "type": "ror"}}
                         if affiliation_node in data_full['replies'] and data_full['replies'][affiliation_node]['value'][
                             'value'] == '7f0c9b48-4f8c-46b7-be12-3fbc39287482':
-                            ct["institution"] = {"name": "University of Gothenburg",
-                                                 "identifier": {"name": "https://ror.org/01tm6cn81", "type": "ror"}}
+                            ct["affiliation"] = {"name": "University of Gothenburg",
+                                                 "affiliation_id": {"name": "https://ror.org/01tm6cn81", "type": "ror"}}
                         if affiliation_node + '.f970e56e-da9d-4a00-b559-223890056e24.c10690e4-df79-4ce0-859a-cc176b5597ca' in \
                                 data_full['replies']:
                             affiliation_other = affiliation_node + '.f970e56e-da9d-4a00-b559-223890056e24.c10690e4-df79-4ce0-859a-cc176b5597ca'
                             affiliation_other_name = data_full['replies'][affiliation_other]['value']['value']['value']
                             affiliation_other_id = data_full['replies'][affiliation_other]['value']['value']['id']
-                            ct["institution"] = {"name": affiliation_other_name,
-                                                 "identifier": {"name": affiliation_other_id, "type": "ror"}}
+                            ct["affiliation"] = {"name": affiliation_other_name,
+                                                 "affiliation_id": {"name": affiliation_other_id, "type": "ror"}}
                     except KeyError:
                         print('no affiliations');
                     try:
@@ -204,7 +206,7 @@ for i in data['_embedded']['questionnaires']:
                             contributor_role = 'contact person'
                             if contributor_orcid:
                                 cc['contact_id'] = {"identifier": contributor_orcid, "type": "orcid"}
-                            cc['institution'] = ct['institution']
+                            cc['affiliation'] = ct['affiliation']
                             cc['name'] = contributor_name
                             if contributor_email:
                                 cc['email'] = contributor_email
