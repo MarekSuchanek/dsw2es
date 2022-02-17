@@ -157,9 +157,14 @@ for i in data['_embedded']['questionnaires']:
                 for c in contributors['value']['value']:
                     ct = {}
                     affiliation_node = ''
-                    ct["affiliation"] = {}
 
                     contributor = '1e85da40-bbfc-4180-903e-6c569ed2da38.73d686bd-7939-412e-8631-502ee6d9ea7b.' + c
+                    try:
+                        name_node = contributor + ".6155ad47-3d1e-4488-9f2a-742de1e56580"
+                        contributor_name = data_full['replies'][name_node]['value']['value']
+                        ct["name"] = contributor_name
+                    except KeyError:
+                        contributor_name = ''
                     try:
                         email_node = contributor + ".3a2ffc13-6a0e-4976-bb34-14ab6d938348"
                         contributor_email = data_full['replies'][email_node]['value']['value']
@@ -173,12 +178,7 @@ for i in data['_embedded']['questionnaires']:
                     except KeyError:
                         contributor_orcid = ''
                     try:
-                        name_node = contributor + ".6155ad47-3d1e-4488-9f2a-742de1e56580"
-                        contributor_name = data_full['replies'][name_node]['value']['value']
-                        ct["name"] = contributor_name
-                    except KeyError:
-                        contributor_name = ''
-                    try:
+                        ct["affiliation"] = {}
                         affiliation_node = contributor + '.68530470-1f1c-4448-8593-63a288713a66';
                         # print('aff node: ' + affiliation_node)
                         # Non-standard field (CTH)
@@ -201,6 +201,7 @@ for i in data['_embedded']['questionnaires']:
                             print('aff: ' + contributor_name + ', ' + str(ct['affiliation']))
                     except KeyError:
                         print('no affiliations');
+                        ct["affiliation"] = {}
                     try:
                         role_node = contributor + ".829dcda6-db8a-40ac-819a-92b9b52490f5"
                         role_id = data_full['replies'][role_node]['value']['value']
