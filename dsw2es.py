@@ -9,6 +9,7 @@ from elasticsearch import Elasticsearch
 import os
 from dotenv import load_dotenv
 import logging
+import configparser
 
 # Read variables from dotenv
 load_dotenv()
@@ -21,6 +22,10 @@ dswurl = os.getenv("DSW_URL")
 dswuser = os.getenv("DSW_USER")
 dswpw = os.getenv("DSW_PW")
 logfile = os.getenv("LOGFILE")
+
+# Read config
+config = configparser.ConfigParser()
+config.read_file(open(r'dsw2es.conf'))
 
 # Create and configure logger
 logging.basicConfig(filename=logfile,
@@ -148,9 +153,9 @@ for i in data['_embedded']['questionnaires']:
 
         # Contact and contributor(s)
 
-        if '1e85da40-bbfc-4180-903e-6c569ed2da38.73d686bd-7939-412e-8631-502ee6d9ea7b' in data_full['replies']:
+        if config.get('Paths', 'contributors') in data_full['replies']:
             contributors = data_full['replies'][
-                '1e85da40-bbfc-4180-903e-6c569ed2da38.73d686bd-7939-412e-8631-502ee6d9ea7b']
+                config.get('Paths', 'contributors')]
 
             if contributors:
                 cs = []
@@ -158,42 +163,42 @@ for i in data['_embedded']['questionnaires']:
                     ct = {}
                     affiliation_node = ''
 
-                    contributor = '1e85da40-bbfc-4180-903e-6c569ed2da38.73d686bd-7939-412e-8631-502ee6d9ea7b.' + c
+                    contributor = config.get('Paths', 'contributors') + '.' + c
                     try:
-                        name_node = contributor + ".6155ad47-3d1e-4488-9f2a-742de1e56580"
+                        name_node = contributor + "." + config.get('Paths', 'contributor.name')
                         contributor_name = data_full['replies'][name_node]['value']['value']
                         ct["name"] = contributor_name
                     except KeyError:
                         contributor_name = ''
                     try:
-                        email_node = contributor + ".3a2ffc13-6a0e-4976-bb34-14ab6d938348"
+                        email_node = contributor + "." + config.get('Paths', 'contributor.email')
                         contributor_email = data_full['replies'][email_node]['value']['value']
                         ct["mbox"] = contributor_email
                     except KeyError:
                         contributor_email = ''
                     try:
-                        orcid_node = contributor + ".6295a55d-48d7-4f3c-961a-45b38eeea41f"
+                        orcid_node = contributor + "." + config.get('Paths', 'contributor.orcid')
                         contributor_orcid = data_full['replies'][orcid_node]['value']['value']
                         ct["contributor_id"] = {"identifier": contributor_orcid, "type": "orcid"}
                     except KeyError:
                         contributor_orcid = ''
                     try:
                         ct["affiliation"] = {}
-                        affiliation_node = contributor + '.68530470-1f1c-4448-8593-63a288713a66';
+                        affiliation_node = contributor + '.' + config.get('Paths', 'contributor.affiliation');
                         # print('aff node: ' + affiliation_node)
                         # Non-standard field (CTH)
 
-                        if affiliation_node + '.d8efc3fb-9717-4566-9529-e89e71b1554d.d9c9674e-aa62-429f-a9b1-f2d151122249' in \
+                        if affiliation_node + '.' + config.get('Paths', 'contributor.affiliation.cth') in \
                                 data_full['replies']:
                             ct["affiliation"] = {"name": "Chalmers University of Technology",
                                                  "affiliation_id": {"name": "https://ror.org/040wg7k59", "type": "ror"}}
                         if affiliation_node in data_full['replies'] and data_full['replies'][affiliation_node]['value'][
-                            'value'] == '7f0c9b48-4f8c-46b7-be12-3fbc39287482':
+                            'value'] == config.get('Paths', 'contributor.affiliation.gu'):
                             ct["affiliation"] = {"name": "University of Gothenburg",
                                                  "affiliation_id": {"name": "https://ror.org/01tm6cn81", "type": "ror"}}
-                        if affiliation_node + '.f970e56e-da9d-4a00-b559-223890056e24.c10690e4-df79-4ce0-859a-cc176b5597ca' in \
+                        if affiliation_node + '.' + config.get('Paths', 'contributor.affiliation.other') in \
                                 data_full['replies']:
-                            affiliation_other = affiliation_node + '.f970e56e-da9d-4a00-b559-223890056e24.c10690e4-df79-4ce0-859a-cc176b5597ca'
+                            affiliation_other = affiliation_node + '.' + config.get('Paths', 'contributor.affiliation.other')
                             affiliation_other_name = data_full['replies'][affiliation_other]['value']['value']['value']
                             affiliation_other_id = data_full['replies'][affiliation_other]['value']['value']['id']
                             ct["affiliation"] = {"name": affiliation_other_name,
@@ -203,9 +208,9 @@ for i in data['_embedded']['questionnaires']:
                         print('no affiliations');
                         ct["affiliation"] = {}
                     try:
-                        role_node = contributor + ".829dcda6-db8a-40ac-819a-92b9b52490f5"
+                        role_node = contributor + "." + config.get('Paths', 'contributor.roles')
                         role_id = data_full['replies'][role_node]['value']['value']
-                        if role_id == 'f7468e79-c621-4ac9-95e0-263ebdf23c73':
+                        if role_id == config.get('Paths', 'contributor.role.contact'):
                             cc = {}
                             contributor_role = 'contact person'
                             if contributor_orcid:
@@ -213,16 +218,16 @@ for i in data['_embedded']['questionnaires']:
                             cc['affiliation'] = ct['affiliation']
                             cc['name'] = contributor_name
                             if contributor_email:
-                                cc['email'] = contributor_email
-                        elif role_id == 'fe411838-170e-45d7-9d91-14f95ad347e6':
+                                cc['mbox'] = contributor_email
+                        elif role_id == config.get('Paths', 'contributor.role.datacollector'):
                             contributor_role = 'data collector'
-                        elif role_id == '0ee99167-c1a2-4fe9-a799-ef07a31ccf35':
+                        elif role_id == config.get('Paths', 'contributor.role.datacurator'):
                             contributor_role = 'data curator'
-                        elif role_id == '3eec8106-b82c-4ce4-8fde-0a5270c55b10':
+                        elif role_id == config.get('Paths', 'contributor.role.datasteward'):
                             contributor_role = 'data steward'
-                        elif role_id == '369db75c-cf52-459a-836c-e3bcac3590bb':
+                        elif role_id == config.get('Paths', 'contributor.role.researcher'):
                             contributor_role = 'researcher'
-                        elif role_id == 'dead02bb-d5b2-4036-9e99-3318f191b3d0':
+                        elif role_id == config.get('Paths', 'contributor.role.other'):
                             contributor_role = 'other'
                         else:
                             contributor_role = 'other'
@@ -240,15 +245,15 @@ for i in data['_embedded']['questionnaires']:
 
         md['hasProject'] = 'false'
 
-        if '1e85da40-bbfc-4180-903e-6c569ed2da38.c3dabaaf-c946-4a0d-889c-ede966f97667' in data_full['replies']:
-            projects = data_full['replies']['1e85da40-bbfc-4180-903e-6c569ed2da38.c3dabaaf-c946-4a0d-889c-ede966f97667']
+        if config.get('Paths', 'projects') in data_full['replies']:
+            projects = data_full['replies'][config.get('Paths', 'projects')]
 
             if projects:
                 ps = []
                 md['hasProject'] = 'true'
                 for p in projects['value']['value']:
                     pt = {}
-                    project = '1e85da40-bbfc-4180-903e-6c569ed2da38.c3dabaaf-c946-4a0d-889c-ede966f97667.' + p
+                    project = config.get('Paths', 'projects') + '.' + p
                     try:
                         pname_node = project + ".f0ef08fd-d733-465c-bc66-5de0b826c41b"
                         pname = data_full['replies'][pname_node]['value']['value']
