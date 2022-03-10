@@ -255,39 +255,39 @@ for i in data['_embedded']['questionnaires']:
                     pt = {}
                     project = config.get('Paths', 'projects') + '.' + p
                     try:
-                        pname_node = project + ".f0ef08fd-d733-465c-bc66-5de0b826c41b"
+                        pname_node = project + "." + config.get('Paths', 'project.name')
                         pname = data_full['replies'][pname_node]['value']['value']
                         pt["title"] = pname
                     except KeyError:
                         pname = ''
                     try:
-                        pdesc_node = project + ".22583d74-3c98-4e0a-b363-26d767c88212"
+                        pdesc_node = project + "." + config.get('Paths', 'project.desc')
                         pdesc = data_full['replies'][pdesc_node]['value']['value']
                         pdesc = pdesc.replace('\n', ' ')
                         pt["description"] = pdesc
                     except KeyError:
                         pdesc = ''
                     try:
-                        pstart_node = project + ".de84b9b5-bcd0-4954-8370-72ea83916b8c"
+                        pstart_node = project + "." + config.get('Paths', 'project.start')
                         pstart = data_full['replies'][pstart_node]['value']['value']
                         pt["start"] = pstart
                     except KeyError:
                         pstart = ''
                     try:
-                        pend_node = project + ".cabc6f07-6015-454e-b97a-c34db4ec0c60"
+                        pend_node = project + "." + config.get('Paths', 'project.end')
                         pend = data_full['replies'][pend_node]['value']['value']
                         pt["end"] = pend
                     except KeyError:
                         pend = ''
                     try:
-                        pfunding_node = project + ".36a87eac-402d-43fb-a0df-ac5963bdf87d"
+                        pfunding_node = project + "." + config.get('Paths', 'project.funding')
                         pfl = []
                         for pf in data_full['replies'][pfunding_node]['value']['value']:
                             pfn = {}
                             funding = pfunding_node + '.' + pf
                             # print('funding: ' + funding)
                             try:
-                                pf_funder_node = funding + ".0b12fb8c-ee0f-40c0-9c53-b6826b786a0c"
+                                pf_funder_node = funding + "." + config.get('Paths', 'project.funder')
                                 pf_funder = data_full['replies'][pf_funder_node]['value']['value']['id']
                                 pf_funder_name = data_full['replies'][pf_funder_node]['value']['value']['value']
                                 pfn['funder_name'] = pf_funder_name
@@ -298,19 +298,19 @@ for i in data['_embedded']['questionnaires']:
                             except KeyError:
                                 pfunder = ''
                             try:
-                                pf_grant_node = funding + ".1ccbd0bb-4263-4240-9dc5-936ef09eef53"
+                                pf_grant_node = funding + "." + config.get('Paths', 'project.funder.grant')
                                 pf_grant = data_full['replies'][pf_grant_node]['value']['value']
                                 pfn['grant_id'] = {'identifier': pf_grant, 'type': 'other'}
                             except KeyError:
                                 pfunder = ''
                             try:
-                                pf_status_node = funding + ".54ff3b18-652f-4235-8f9f-3c87e2d63169"
+                                pf_status_node = funding + "." + config.get('Paths', 'project.funding.status')
                                 pf_status_id = data_full['replies'][pf_status_node]['value']['value']
-                                if pf_status_id == 'dcbeab22-d188-4fa0-b50b-5c9d1a2fbefe':
+                                if pf_status_id == config.get('Paths', 'project.funding.status.granted'):
                                     pf_status = 'granted'
-                                elif pf_status_id == '85fad342-a89d-414b-bc83-286a7417bb78':
+                                elif pf_status_id == config.get('Paths', 'project.funding.status.applied'):
                                     pf_status = 'applied'
-                                elif pf_status_id == '59ed0193-8211-4ee8-8d36-0640d99ce870':
+                                elif pf_status_id == config.get('Paths', 'project.funding.status.planned'):
                                     pf_status = 'planned'
                                 else:
                                     pf_status = 'unknown'
@@ -337,22 +337,22 @@ for i in data['_embedded']['questionnaires']:
         ethical_issues_exist = 'unknown'
 
         # GDPR
-        if '8eb418fe-f415-44cd-8027-5fac5fc025c1.ab5a4fb6-0717-410d-91b1-f47998659572' in data_full['replies']:
+        if config.get('Paths', 'ethical_issues') in data_full['replies']:
             if \
-                    data_full['replies']['8eb418fe-f415-44cd-8027-5fac5fc025c1.ab5a4fb6-0717-410d-91b1-f47998659572'][
-                        'value']['value'] == 'd2c27c85-8e39-4a24-a483-3ca5156b5fc6':
+                    data_full['replies'][config.get('Paths', 'ethical_issues')][
+                        'value']['value'] == config.get('Paths', 'ethical_issues.yes'):
                 ethical_issues_exist = 'yes'
                 md['hasPersonalData'] = 'true'
-                if '8eb418fe-f415-44cd-8027-5fac5fc025c1.ab5a4fb6-0717-410d-91b1-f47998659572.d2c27c85-8e39-4a24-a483-3ca5156b5fc6.41d5be8f-cc0c-4f8f-a20a-980e5d44609d' in \
+                if config.get('Paths', 'ethical_issues.desc') in \
                         data_full['replies']:
                     ethical_issues_desc = data_full['replies'][
-                        '8eb418fe-f415-44cd-8027-5fac5fc025c1.ab5a4fb6-0717-410d-91b1-f47998659572.d2c27c85-8e39-4a24-a483-3ca5156b5fc6.41d5be8f-cc0c-4f8f-a20a-980e5d44609d'][
+                        config.get('Paths', 'ethical_issues.desc')][
                         'value']['value']
                     d['ethical_issues_description'] = ethical_issues_desc
             if \
-                    data_full['replies']['8eb418fe-f415-44cd-8027-5fac5fc025c1.ab5a4fb6-0717-410d-91b1-f47998659572'][
+                    data_full['replies'][config.get('Paths', 'ethical_issues')][
                         'value'][
-                        'value'] == '43dd8b13-633f-4d06-9f45-4365e748da71':
+                        'value'] == config.get('Paths', 'ethical_issues.no'):
                 ethical_issues_exist = 'no'
                 ethical_issues_exist = 'false'
 
