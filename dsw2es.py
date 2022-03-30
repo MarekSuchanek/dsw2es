@@ -10,6 +10,7 @@ import os
 from dotenv import load_dotenv
 import logging
 import configparser
+from datetime import datetime
 
 # Read variables from dotenv
 load_dotenv()
@@ -186,7 +187,7 @@ for i in data['_embedded']['questionnaires']:
                         ct["affiliation"] = {}
                         affiliation_node = contributor + '.' + config.get('Paths', 'contributor.affiliation');
                         # print('aff node: ' + affiliation_node)
-                        # Non-standard field (CTH)
+                        # Non-standard field (CTH), separate field for Horizon Europe KM
 
                         if affiliation_node + '.' + config.get('Paths', 'contributor.affiliation.cth') in \
                                 data_full['replies']:
@@ -198,18 +199,30 @@ for i in data['_embedded']['questionnaires']:
                                                  "affiliation_id": {"name": "https://ror.org/01tm6cn81", "type": "ror"}}
                         if affiliation_node + '.' + config.get('Paths', 'contributor.affiliation.other') in \
                                 data_full['replies']:
-                            affiliation_other = affiliation_node + '.' + config.get('Paths', 'contributor.affiliation.other')
+                            affiliation_other = affiliation_node + '.' + config.get('Paths',
+                                                                                    'contributor.affiliation.other')
                             affiliation_other_name = data_full['replies'][affiliation_other]['value']['value']['value']
                             affiliation_other_id = data_full['replies'][affiliation_other]['value']['value']['id']
                             ct["affiliation"] = {"name": affiliation_other_name,
                                                  "affiliation_id": {"name": affiliation_other_id, "type": "ror"}}
-                            print('aff: ' + contributor_name + ', ' + str(ct['affiliation']))
+                        # HE
+                        if data_full['package']['kmId'] == 'root-he':
+                            if affiliation_node in data_full['replies']:
+                                affiliation_he = affiliation_node
+                                affiliation_he_name = data_full['replies'][affiliation_he]['value']['value'][
+                                    'value']
+                                affiliation_he_id = data_full['replies'][affiliation_he]['value']['value']['id']
+                                ct["affiliation"] = {"name": affiliation_he_name,
+                                                     "affiliation_id": {"name": affiliation_he_id, "type": "ror"}}
+                                print("aff_node_he: " + affiliation_he)
+                            # print('aff: ' + contributor_name + ', ' + str(ct['affiliation']))
                     except KeyError:
-                        print('no affiliations');
+                        print('no affiliations')
                         ct["affiliation"] = {}
                     try:
                         role_node = contributor + "." + config.get('Paths', 'contributor.roles')
                         role_id = data_full['replies'][role_node]['value']['value']
+                        print("role: " + str(role_id))
                         if role_id == config.get('Paths', 'contributor.role.contact'):
                             cc = {}
                             contributor_role = 'contact person'
@@ -229,6 +242,16 @@ for i in data['_embedded']['questionnaires']:
                             contributor_role = 'researcher'
                         elif role_id == config.get('Paths', 'contributor.role.other'):
                             contributor_role = 'other'
+                        # HE
+                        if config.get('Paths', 'contributor.role_he.contact') in role_id:
+                            cc = {}
+                            contributor_role = 'contact person'
+                            if contributor_orcid:
+                                cc['contact_id'] = {"identifier": contributor_orcid, "type": "orcid"}
+                            cc['affiliation'] = ct['affiliation']
+                            cc['name'] = contributor_name
+                            if contributor_email:
+                                cc['mbox'] = contributor_email
                         else:
                             contributor_role = 'other'
                     except KeyError:
@@ -358,6 +381,28 @@ for i in data['_embedded']['questionnaires']:
 
         d['ethical_issues_exist'] = ethical_issues_exist
 
+        # GDPR (Horizon Europe KM)
+        if config.get('Paths', 'ethical_issues_he') in data_full['replies']:
+            if \
+                    data_full['replies'][config.get('Paths', 'ethical_issues_he')][
+                        'value']['value'] == config.get('Paths', 'ethical_issues_he.yes'):
+                ethical_issues_exist = 'yes'
+                md['hasPersonalData'] = 'true'
+                if config.get('Paths', 'ethical_issues_he.desc') in \
+                        data_full['replies']:
+                    ethical_issues_desc = data_full['replies'][
+                        config.get('Paths', 'ethical_issues_he.desc')][
+                        'value']['value']
+                    d['ethical_issues_description'] = ethical_issues_desc
+            if \
+                    data_full['replies'][config.get('Paths', 'ethical_issues_he')][
+                        'value'][
+                        'value'] == config.get('Paths', 'ethical_issues_he.no'):
+                ethical_issues_exist = 'no'
+                ethical_issues_exist = 'false'
+
+        d['ethical_issues_exist'] = ethical_issues_exist
+
         # Dataset(s)
 
         md['hasDatasets'] = 'false'
@@ -452,16 +497,21 @@ for i in data['_embedded']['questionnaires']:
 
         # Additional metadata (local)
 
+        md['indexed'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+
         md['hasExistingData'] = 'false'
         if '82fd0cce-2b41-423f-92ad-636d0872045c.efc80cc8-8318-4f8c-acb7-dc1c60e491c1' in data_full['replies']:
-            if data_full['replies']['82fd0cce-2b41-423f-92ad-636d0872045c.efc80cc8-8318-4f8c-acb7-dc1c60e491c1']['value']['value'] == '2663b978-5125-4224-9930-0a50dbe895c9':
+            if \
+            data_full['replies']['82fd0cce-2b41-423f-92ad-636d0872045c.efc80cc8-8318-4f8c-acb7-dc1c60e491c1']['value'][
+                'value'] == '2663b978-5125-4224-9930-0a50dbe895c9':
                 md['hasExistingData'] = 'true'
 
         md['hasCollectingNewData'] = 'false'
         if 'b1df3c74-0b1f-4574-81c4-4cc2d780c1af.f87c331d-794a-42c8-a910-61a2a9110dab' in data_full['replies']:
             if \
-            data_full['replies']['b1df3c74-0b1f-4574-81c4-4cc2d780c1af.f87c331d-794a-42c8-a910-61a2a9110dab']['value'][
-                'value'] == 'e4ca2d31-137a-46d3-96cd-3e9e8c5e9a76':
+                    data_full['replies']['b1df3c74-0b1f-4574-81c4-4cc2d780c1af.f87c331d-794a-42c8-a910-61a2a9110dab'][
+                        'value'][
+                        'value'] == 'e4ca2d31-137a-46d3-96cd-3e9e8c5e9a76':
                 md['hasCollectingNewData'] = 'true'
 
         md['hasCreatingNewData'] = 'false'
@@ -529,6 +579,7 @@ for i in data['_embedded']['questionnaires']:
 
         try:
             response = elastic.index(index=esindex, doc_type='dmp', id=dmp_id, document=dmp, ignore=[400, 404])
+            print(str(dmp))
         except elasticsearch.exceptions.RequestError as e:
             if e.error == 'resource_already_exists_exception':
                 pass  # Doc already exists. Ignore, it will be updated.
