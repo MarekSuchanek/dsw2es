@@ -23,6 +23,7 @@ dswurl = os.getenv("DSW_URL")
 dswuser = os.getenv("DSW_USER")
 dswpw = os.getenv("DSW_PW")
 logfile = os.getenv("LOGFILE")
+baseurl = os.getenv("BASEURL")
 
 # Read config
 config = configparser.ConfigParser()
@@ -114,7 +115,7 @@ for i in data['_embedded']['questionnaires']:
 
         d['title'] = dmp_name
         d['created'] = created_at
-        di = {"identifier": "https://dsw-staging.ita.chalmers.se/projects/" + dmp_id, "type": "url"}
+        di = {"identifier": baseurl + dmp_id, "type": "url"}
 
         d['dmp_identifier'] = di
 
@@ -290,6 +291,12 @@ for i in data['_embedded']['questionnaires']:
                         pt["description"] = pdesc
                     except KeyError:
                         pdesc = ''
+                    try:
+                        pacronym_node = project + "." + config.get('Paths', 'project.acronym')
+                        pacronym = data_full['replies'][pacronym_node]['value']['value']
+                        pt["acronym"] = pacronym
+                    except KeyError:
+                        pacronym = ''
                     try:
                         pstart_node = project + "." + config.get('Paths', 'project.start')
                         pstart = data_full['replies'][pstart_node]['value']['value']
@@ -530,22 +537,40 @@ for i in data['_embedded']['questionnaires']:
                         'value'] == '4fd89b13-f33c-4858-8b25-ab6da271efc6':
                 md['hasNonEquipmentNewData'] = 'true'
 
-        if '10a10ffd-bfe1-4c6b-bbb6-3dfb1e63a5d5.b7cb30ba-acb9-439e-88e0-08e2658b779e' in data_full['replies']:
+        if config.get('Paths', 'metadata.storage_needs') in data_full['replies']:
             storage_needs_id = \
-                data_full['replies']['10a10ffd-bfe1-4c6b-bbb6-3dfb1e63a5d5.b7cb30ba-acb9-439e-88e0-08e2658b779e'][
+                data_full['replies'][config.get('Paths', 'metadata.storage_needs')][
                     'value'][
                     'value']
-            if storage_needs_id == '62eb65fb-1a5f-49d1-b294-acad3a42b23b':
+            if storage_needs_id == config.get('Paths', 'metadata.storage_needs.very_small'):
                 storage_needs = 'Very small, < 1 TB'
-            elif storage_needs_id == 'c51174aa-647e-4a1e-9bd9-92c33de956f2':
+            elif storage_needs_id == config.get('Paths', 'metadata.storage_needs.small'):
                 storage_needs = 'Small (1-5 TB)'
-            elif storage_needs_id == 'c0e59c38-89a0-408f-8c29-ead561d3e7d4':
+            elif storage_needs_id == config.get('Paths', 'metadata.storage_needs.large'):
                 storage_needs = 'Large (5-50 TB)'
-            elif storage_needs_id == 'c13357bd-fe0f-4443-86be-ee3a523b624b':
+            elif storage_needs_id == config.get('Paths', 'metadata.storage_needs.very_large'):
                 storage_needs = 'Very large (>= 50 TB)'
             else:
                 storage_needs = 'unknown'
             md['storage_needs'] = storage_needs
+
+        if data_full['package']['kmId'] == 'root-he':
+            if config.get('Paths', 'metadata.storage_needs_he') in data_full['replies']:
+                storage_needs_id = \
+                    data_full['replies'][config.get('Paths', 'metadata.storage_needs_he')][
+                        'value'][
+                        'value']
+                if storage_needs_id == config.get('Paths', 'metadata.storage_needs.very_small_he'):
+                    storage_needs = 'Very small, < 1 TB'
+                elif storage_needs_id == config.get('Paths', 'metadata.storage_needs.small_he'):
+                    storage_needs = 'Small (1-5 TB)'
+                elif storage_needs_id == config.get('Paths', 'metadata.storage_needs.large_he'):
+                    storage_needs = 'Large (5-50 TB)'
+                elif storage_needs_id == config.get('Paths', 'metadata.storage_needs.very_large_he'):
+                    storage_needs = 'Very large (>= 50 TB)'
+                else:
+                    storage_needs = 'unknown'
+                md['storage_needs'] = storage_needs
 
         if '10a10ffd-bfe1-4c6b-bbb6-3dfb1e63a5d5.1cc02007-5443-49f2-ba73-216d6f5b1f4f' in data_full['replies']:
             storage_needs_id = \
