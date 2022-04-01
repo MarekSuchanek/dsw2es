@@ -15,7 +15,7 @@ from datetime import datetime
 # Read variables from dotenv
 load_dotenv()
 esurl = os.getenv("ELASTIC_URL")
-esport = os.getenv("ELASTIC_PORT")
+esport = int(os.getenv("ELASTIC_PORT"))
 esindex = os.getenv("ELASTIC_INDEX_NAME")
 esuser = os.getenv("ELASTIC_USER")
 espw = os.getenv("ELASTIC_PW")
