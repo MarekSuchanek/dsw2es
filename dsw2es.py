@@ -74,7 +74,7 @@ except elasticsearch.exceptions.RequestError as e:
         sys.exit()
 
 # Request data from DSW as string
-dsw_geturl = dswurl + '/questionnaires'
+dsw_geturl = dswurl + '/questionnaires?isTemplate=false&sort=createdAt%2Cdesc&size=500'
 data = requests.get(url=dsw_geturl, headers=headers).text
 
 # convert string to Json
@@ -224,6 +224,7 @@ for i in data['_embedded']['questionnaires']:
                         role_node = contributor + "." + config.get('Paths', 'contributor.roles')
                         role_id = data_full['replies'][role_node]['value']['value']
                         print("role: " + str(role_id))
+                        cc = {}
                         if role_id == config.get('Paths', 'contributor.role.contact'):
                             cc = {}
                             contributor_role = 'contact person'
