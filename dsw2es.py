@@ -226,7 +226,6 @@ for i in data['_embedded']['questionnaires']:
                         print("role: " + str(role_id))
                         cc = {}
                         if role_id == config.get('Paths', 'contributor.role.contact'):
-                            cc = {}
                             contributor_role = 'contact person'
                             if contributor_orcid:
                                 cc['contact_id'] = {"identifier": contributor_orcid, "type": "orcid"}
