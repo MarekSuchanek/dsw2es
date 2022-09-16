@@ -386,8 +386,8 @@ for i in data['_embedded']['questionnaires']:
                     data_full['replies'][config.get('Paths', 'ethical_issues')][
                         'value'][
                         'value'] == config.get('Paths', 'ethical_issues.no'):
+                ethical_issues_exist = 'yes'
                 ethical_issues_exist = 'no'
-                ethical_issues_exist = 'false'
 
         d['ethical_issues_exist'] = ethical_issues_exist
 
@@ -409,7 +409,7 @@ for i in data['_embedded']['questionnaires']:
                         'value'][
                         'value'] == config.get('Paths', 'ethical_issues_he.no'):
                 ethical_issues_exist = 'no'
-                ethical_issues_exist = 'false'
+                ethical_issues_exist = 'no'
 
         d['ethical_issues_exist'] = ethical_issues_exist
 
