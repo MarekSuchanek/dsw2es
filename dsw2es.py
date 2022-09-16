@@ -59,9 +59,11 @@ headers = {'Accept': 'application/json',
            'Authorization': 'Bearer ' + dsw_token}
 
 # Create new index (or replace existing)
+# Require elasticsearch >=7.16.3 to work with ES 6.x
 elastic = Elasticsearch([{'host': esurl, 'port': esport, 'use_ssl': True}], http_auth=(esuser, espw))
 try:
     create_resp = elastic.indices.create(index=esindex, ignore=[400, 404])
+
     # print(create_resp)
     logger.info('Index ' + esindex + ' was successfully created.')
 except elasticsearch.exceptions.RequestError as e:
@@ -85,7 +87,8 @@ data = json.loads(data)
 
 dmp = {}
 count = 0
-madmp_schema = "https://github.com/RDA-DMP-Common/RDA-DMP-Common-Standard/tree/master/examples/JSON/JSSON-schema/1.0"
+# madmp_schema = "https://github.com/RDA-DMP-Common/RDA-DMP-Common-Standard/tree/master/examples/JSON/JSSON-schema/1.0"
+madmp_schema = "https://github.com/RDA-DMP-Common/RDA-DMP-Common-Standard/tree/master/examples/JSON/JSON-schema/1.1"
 
 for i in data['_embedded']['questionnaires']:
     d = dict()
@@ -117,7 +120,7 @@ for i in data['_embedded']['questionnaires']:
         d['created'] = created_at
         di = {"identifier": baseurl + dmp_id, "type": "url"}
 
-        d['dmp_identifier'] = di
+        d['dmp_id'] = di
 
         if i['package']:
             d[
