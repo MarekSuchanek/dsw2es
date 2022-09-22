@@ -87,7 +87,6 @@ data = json.loads(data)
 
 dmp = {}
 count = 0
-# madmp_schema = "https://github.com/RDA-DMP-Common/RDA-DMP-Common-Standard/tree/master/examples/JSON/JSSON-schema/1.0"
 madmp_schema = "https://github.com/RDA-DMP-Common/RDA-DMP-Common-Standard/tree/master/examples/JSON/JSON-schema/1.1"
 
 for i in data['_embedded']['questionnaires']:
@@ -504,6 +503,16 @@ for i in data['_embedded']['questionnaires']:
                         print('dataset added')
         else:
             print('NO DATASETS')
+            # Create a generic (empty) set to comply with standard
+            md['hasDatasets'] = 'false'
+            dset_empty = {}
+            dsts_empty = []
+            dset_empty["type"] = 'dataset'
+            dset_empty["title"] = 'Generic dataset'
+            dset_empty["description"] = 'No individual datasets have been defined for this DMP.'
+            dsts_empty.append(dset_empty)
+            d['datasets'] = dsts_empty
+            print('generic dataset added')
 
         # Additional metadata (local)
 
