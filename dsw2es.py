@@ -163,6 +163,7 @@ for i in data['_embedded']['questionnaires']:
 
             if contributors:
                 cs = []
+                cc = {}
                 for c in contributors['value']['value']:
                     ct = {}
                     affiliation_node = ''
@@ -226,7 +227,7 @@ for i in data['_embedded']['questionnaires']:
                         role_node = contributor + "." + config.get('Paths', 'contributor.roles')
                         role_id = data_full['replies'][role_node]['value']['value']
                         print("role: " + str(role_id))
-                        cc = {}
+
                         if role_id == config.get('Paths', 'contributor.role.contact'):
                             contributor_role = 'contact person'
                             if contributor_orcid:
@@ -255,8 +256,8 @@ for i in data['_embedded']['questionnaires']:
                             cc['name'] = contributor_name
                             if contributor_email:
                                 cc['mbox'] = contributor_email
-                        else:
-                            contributor_role = 'other'
+                        # else:
+                        #    contributor_role = 'other'
                     except KeyError:
                         contributor_role = '(unknown)'
                     ct["role"] = [contributor_role]
@@ -266,6 +267,9 @@ for i in data['_embedded']['questionnaires']:
             d["contributor"] = cs
             if cc:
                 d["contact"] = cc
+                md['hasContactPerson'] = 'true'
+            else:
+                md['hasContactPerson'] = 'false'
 
         # Projects and funding
 
@@ -503,16 +507,17 @@ for i in data['_embedded']['questionnaires']:
                         print('dataset added')
         else:
             print('NO DATASETS')
-            # Create a generic (empty) set to comply with standard
-            md['hasDatasets'] = 'false'
-            dset_empty = {}
-            dsts_empty = []
-            dset_empty["type"] = 'dataset'
-            dset_empty["title"] = 'Generic dataset'
-            dset_empty["description"] = 'No individual datasets have been defined for this DMP.'
-            dsts_empty.append(dset_empty)
-            d['datasets'] = dsts_empty
-            print('generic dataset added')
+            # Create a generic (empty) set to comply with standard?
+            # md['hasDatasets'] = 'false'
+            # dsts_empty = []
+            # dset_empty = {}
+            # dset_empty["type"] = 'dataset'
+            # dset_empty["title"] = 'Generic dataset'
+            # dset_empty["description"] = 'No individual datasets have been defined for this DMP.'
+            # dset_empty["dataset_id"] = ['undefined']
+            # dsts_empty.append(dset_empty)
+            # d['dataset'] = dsts_empty
+            # print('generic dataset added')
 
         # Additional metadata (local)
 
