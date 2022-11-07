@@ -90,6 +90,8 @@ count = 0
 madmp_schema = "https://github.com/RDA-DMP-Common/RDA-DMP-Common-Standard/tree/master/examples/JSON/JSON-schema/1.1"
 
 for i in data['_embedded']['questionnaires']:
+    import_this = 'true'
+    is_outdated = 'false'
     d = dict()
     md = dict()
     d['schema'] = madmp_schema
@@ -98,7 +100,6 @@ for i in data['_embedded']['questionnaires']:
     if i['updatedAt']:
         updated_at = i['updatedAt']
         d['modified'] = updated_at
-    is_outdated = 'false'
     if 'state' in i:
         state = i['state']
         if state == 'Outdated':
@@ -154,6 +155,15 @@ for i in data['_embedded']['questionnaires']:
             print('Could not retrieve record id: ' + dmp_id + ' , existing.')
             logger.error('Could not retrieve record id: ' + dmp_id + ' , existing: ' + e.response.text)
             sys.exit(1)
+
+        # Disclaimer
+        if config.get('Paths', 'disclaimer') in data_full['replies']:
+            disclaimer_replies_node = config.get('Paths', 'disclaimer')
+            disclaimer_answer = data_full['replies'][disclaimer_replies_node]['value']['value']
+            print('disclaimer path: ' + str(disclaimer_answer))
+            if disclaimer_answer == config.get('Paths', 'disclaimer_answer_no'):
+                print('User has rejected the disclaimer for dmp id: ' + str(dmp_id) + '!')
+                import_this = 'false'
 
         # Contact and contributor(s)
 
@@ -619,16 +629,19 @@ for i in data['_embedded']['questionnaires']:
         # https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html
         # https://kb.objectrocket.com/elasticsearch/how-to-index-elasticsearch-documents-using-the-python-client-library
 
-        try:
-            response = elastic.index(index=esindex, doc_type='dmp', id=dmp_id, document=dmp, ignore=[400, 404])
-            print(str(dmp))
-        except elasticsearch.exceptions.RequestError as e:
-            if e.error == 'resource_already_exists_exception':
-                pass  # Doc already exists. Ignore, it will be updated.
-            else:  # Other exception - raise it
-                logger.error('Error when writing doc id: ' + dmp_id + ' to index.' + e.error)
-                raise e
-                sys.exit()
+        if import_this == 'true':
+            try:
+                response = elastic.index(index=esindex, doc_type='dmp', id=dmp_id, document=dmp, ignore=[400, 404])
+                print(str(dmp))
+            except elasticsearch.exceptions.RequestError as e:
+                if e.error == 'resource_already_exists_exception':
+                    pass  # Doc already exists. Ignore, it will be updated.
+                else:  # Other exception - raise it
+                    logger.error('Error when writing doc id: ' + dmp_id + ' to index.' + e.error)
+                    raise e
+                    sys.exit()
+        else:
+            print('DMP id ' + str(dmp_id) + ' was NOT imported.')
 
         print('\n')
         count += 1
