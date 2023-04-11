@@ -234,6 +234,8 @@ for i in data['_embedded']['questionnaires']:
                         print('no affiliations')
                         ct["affiliation"] = {}
                     try:
+                        # default value, todo: multipart roles in HE KM
+                        contributor_role = 'contact person'
                         role_node = contributor + "." + config.get('Paths', 'contributor.roles')
                         role_id = data_full['replies'][role_node]['value']['value']
                         print("role: " + str(role_id))
@@ -533,11 +535,21 @@ for i in data['_embedded']['questionnaires']:
 
         md['indexed'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
 
+        # DMP owner (for now eq to (first named) admin)
+        md['dmp_owner'] = {}
+        for op in data_full['permissions']:
+            # print(op)
+            if 'ADMIN' in op['perms']:
+                owner_name = op['member']['firstName'] + ' ' + op['member']['lastName']
+                owner_uuid = op['member']['uuid']
+                md['dmp_owner'] = {'name': owner_name, 'uuid': owner_uuid}
+
         md['hasExistingData'] = 'false'
         if '82fd0cce-2b41-423f-92ad-636d0872045c.efc80cc8-8318-4f8c-acb7-dc1c60e491c1' in data_full['replies']:
             if \
-            data_full['replies']['82fd0cce-2b41-423f-92ad-636d0872045c.efc80cc8-8318-4f8c-acb7-dc1c60e491c1']['value'][
-                'value'] == '2663b978-5125-4224-9930-0a50dbe895c9':
+                    data_full['replies']['82fd0cce-2b41-423f-92ad-636d0872045c.efc80cc8-8318-4f8c-acb7-dc1c60e491c1'][
+                        'value'][
+                        'value'] == '2663b978-5125-4224-9930-0a50dbe895c9':
                 md['hasExistingData'] = 'true'
 
         md['hasCollectingNewData'] = 'false'
