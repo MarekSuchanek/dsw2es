@@ -163,7 +163,16 @@ for i in data['_embedded']['questionnaires']:
             print('disclaimer path: ' + str(disclaimer_answer))
             if disclaimer_answer == config.get('Paths', 'disclaimer_answer_no'):
                 print('User has rejected the disclaimer for dmp id: ' + str(dmp_id) + '!')
-                import_this = 'false'
+                md['disclaimer_allow_sharing'] = 'no'
+            elif disclaimer_answer == config.get('Paths', 'disclaimer_answer_yes'):
+                print('User has approved the disclaimer for dmp id: ' + str(dmp_id) + '!')
+                md['disclaimer_allow_sharing'] = 'yes'
+            else:
+                print('User has not responded to the disclaimer for dmp id: ' + str(dmp_id) + '!')
+                md['disclaimer_allow_sharing'] = 'missing / not answered'
+        else:
+            print('User has not responded to the disclaimer for dmp id: ' + str(dmp_id) + '!')
+            md['disclaimer_allow_sharing'] = 'missing / not answered'
 
         # Contact and contributor(s)
 
