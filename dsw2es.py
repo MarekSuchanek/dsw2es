@@ -543,6 +543,7 @@ for i in data['_embedded']['questionnaires']:
                 owner_name = op['member']['firstName'] + ' ' + op['member']['lastName']
                 owner_uuid = op['member']['uuid']
                 md['dmp_owner'] = {'name': owner_name, 'uuid': owner_uuid}
+                break
 
         md['hasExistingData'] = 'false'
         if '82fd0cce-2b41-423f-92ad-636d0872045c.efc80cc8-8318-4f8c-acb7-dc1c60e491c1' in data_full['replies']:
