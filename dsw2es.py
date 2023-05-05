@@ -5,12 +5,14 @@ import requests
 import json
 import sys
 import elasticsearch
+import uuid as uuid
 from elasticsearch import Elasticsearch
 import os
 from dotenv import load_dotenv
 import logging
 import configparser
 from datetime import datetime
+import uuid
 
 # Read variables from dotenv
 load_dotenv()
@@ -124,7 +126,8 @@ for i in data['_embedded']['questionnaires']:
 
         if i['package']:
             d[
-                'description'] = "This DMP has been created using Chalmers Data Stewardship Wizard (dsw.chalmers.se) and is based on the knowledge model " + \
+                'description'] = "This DMP has been created using Chalmers Data Stewardship Wizard (dsw.chalmers.se) " \
+                                 "and is based on the knowledge model " + \
                                  i['package']['name'] + " (" + i['package']['id'] + ")."
             if "swe" in i['package']['id']:
                 d['language'] = 'swe'
@@ -524,21 +527,23 @@ for i in data['_embedded']['questionnaires']:
                         dsts.append(dset)
 
                     if dsts:
-                        d['datasets'] = dsts
+                        d['dataset'] = dsts
                         print('dataset added')
         else:
             print('NO DATASETS')
-            # Create a generic (empty) set to comply with standard?
-            # md['hasDatasets'] = 'false'
-            # dsts_empty = []
-            # dset_empty = {}
-            # dset_empty["type"] = 'dataset'
-            # dset_empty["title"] = 'Generic dataset'
-            # dset_empty["description"] = 'No individual datasets have been defined for this DMP.'
-            # dset_empty["dataset_id"] = ['undefined']
-            # dsts_empty.append(dset_empty)
-            # d['dataset'] = dsts_empty
-            # print('generic dataset added')
+            # Create a generic (empty) set to comply with standard
+            md['hasDatasets'] = 'false'
+            dsts_empty = []
+            dset_empty = {}
+            dset_empty["type"] = 'dataset'
+            dset_empty["title"] = 'Generic dataset'
+            dset_empty["description"] = 'No individual datasets have been defined for this DMP.'
+            dset_empty["dataset_id"] = {'identifier': str(uuid.uuid4()), 'type': 'other'}
+            dset_empty["sensitive_data"] = 'unknown'
+            dset_empty["personal_data"] = 'unknown'
+            dsts_empty.append(dset_empty)
+            d['dataset'] = dsts_empty
+            print('generic (dummy) dataset added')
 
         # Additional metadata (local)
 
