@@ -68,12 +68,14 @@ try:
 
     # print(create_resp)
     logger.info('Index ' + esindex + ' was successfully created.')
+    print('Index ' + esindex + ' was successfully created.')
 except elasticsearch.exceptions.RequestError as e:
     if e.error == 'resource_already_exists_exception':
         # print('We will ignore this')
         pass  # Index already exists. Ignore, it will be recreated.
     else:  # Other exception - raise it
         logger.error('Index ' + esindex + ' could not be created: ' + e.error)
+        print('Index ' + esindex + ' could not be created: ' + e.error)
         raise e
         sys.exit()
 
@@ -494,6 +496,7 @@ for i in data['_embedded']['questionnaires']:
                         dset['sensitive_data'] = dstsensdata
                     except KeyError:
                         dstsensdata = ''
+                    dset["dataset_id"] = {'identifier': str(uuid.uuid4()), 'type': 'other'}
                     try:
                         dstid_node = dataset + ".cf727a0a-78c4-45a7-aa9b-cf7650ae873a"
                         for dist in data_full['replies'][dstid_node]['value']['value']:
@@ -534,13 +537,10 @@ for i in data['_embedded']['questionnaires']:
             # Create a generic (empty) set to comply with standard
             md['hasDatasets'] = 'false'
             dsts_empty = []
-            dset_empty = {}
-            dset_empty["type"] = 'dataset'
-            dset_empty["title"] = 'Generic dataset'
-            dset_empty["description"] = 'No individual datasets have been defined for this DMP.'
-            dset_empty["dataset_id"] = {'identifier': str(uuid.uuid4()), 'type': 'other'}
-            dset_empty["sensitive_data"] = 'unknown'
-            dset_empty["personal_data"] = 'unknown'
+            dset_empty = {"type": 'dataset', "title": 'Generic dataset',
+                          "description": 'No individual datasets have been defined for this DMP.',
+                          "dataset_id": {'identifier': str(uuid.uuid4()), 'type': 'other'}, "sensitive_data": 'unknown',
+                          "personal_data": 'unknown'}
             dsts_empty.append(dset_empty)
             d['dataset'] = dsts_empty
             print('generic (dummy) dataset added')
@@ -659,12 +659,16 @@ for i in data['_embedded']['questionnaires']:
         if import_this == 'true':
             try:
                 response = elastic.index(index=esindex, doc_type='dmp', id=dmp_id, document=dmp, ignore=[400, 404])
-                print(str(dmp))
+                # print(str(dmp))
+                print('response: ' + str(response))
+                print(dmp_id + ' was imported!')
             except elasticsearch.exceptions.RequestError as e:
                 if e.error == 'resource_already_exists_exception':
+                    print(dmp_id + ' already exists.')
                     pass  # Doc already exists. Ignore, it will be updated.
                 else:  # Other exception - raise it
                     logger.error('Error when writing doc id: ' + dmp_id + ' to index.' + e.error)
+                    print('Error when writing doc id: ' + dmp_id + ' to index.' + e.error)
                     raise e
                     sys.exit()
         else:
