@@ -332,12 +332,18 @@ for i in data['_embedded']['questionnaires']:
                     try:
                         pstart_node = project + "." + config.get('Paths', 'project.start')
                         pstart = data_full['replies'][pstart_node]['value']['value']
+                        # Modify date format if necessary
+                        if len(pstart) > 10:
+                            pstart = pstart[0:10]
                         pt["start"] = pstart
                     except KeyError:
                         pstart = ''
                     try:
                         pend_node = project + "." + config.get('Paths', 'project.end')
                         pend = data_full['replies'][pend_node]['value']['value']
+                        # Modify date format if necessary
+                        if len(pend) > 10:
+                            pend = pend[0:10]
                         pt["end"] = pend
                     except KeyError:
                         pend = ''
