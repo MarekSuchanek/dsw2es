@@ -360,7 +360,7 @@ for i in data['_embedded']['questionnaires']:
                                 pf_funder_name = data_full['replies'][pf_funder_node]['value']['value']['value']
                                 pfn['funder_name'] = pf_funder_name
                                 if pf_funder_name == 'Vetenskapsrådet':
-                                    pfn['funder_id'] = {'identifier': 'https://ror.org/03zttf063', 'type': 'ror'}
+                                    pfn['funder_id'] = {'identifier': 'https://ror.org/03zttf063', 'type': 'other'}
                                 else:
                                     pfn['funder_id'] = {'identifier': pf_funder, 'type': 'url'}
                             except KeyError:
