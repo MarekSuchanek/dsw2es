@@ -656,7 +656,7 @@ for i in data['_embedded']['questionnaires']:
         dmp_json = json.dumps(dmp)
 
         # debug
-        # print(dmp_json)
+        #print(dmp_json)
 
         # PUT (POST) update to ES index
         # https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html
