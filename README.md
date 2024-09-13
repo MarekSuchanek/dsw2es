@@ -1,4 +1,13 @@
-Simple script solution for converting and importing DS Wizard questionnaires into an external Elastic index, in RDA Common maDMP format.
+Simple script solution for converting and importing DS Wizard questionnaires (DMPs) as RDA Common maDMP 1.1 json records into an external Elastic index, for use with an API or other machine actionable services.
+
+Requirements:
+* An instance of Data Stewardship Wizard, version 4.x, with full access (admin) to the API (/wizard-api).
+* Elasticsearch, version 6.x. Might require some adjustments if using a more recent version (see Known problems below).
+* Python 3.x
+
+Configuration:
+* Paths to individual DMP parts are set in dsw2es.conf. This - and probably other things in the executable (dsw2es.py) - will need to be adjusted according to the knowledge model(s) used in DSW.
+* URLs and login credentials are set in a .env file (use env_examples.txt for this). 
 
 Known problems:
 * Different versions of python elasticsearch module can cause errors like: TypeError: index() got an unexpected keyword argument 'document'.  
