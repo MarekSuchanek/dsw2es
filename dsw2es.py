@@ -147,7 +147,7 @@ for i in data['_embedded']['questionnaires']:
             md['description'] = i['description']
 
         # request full doc from DSW
-        link_full = dswurl + '/questionnaires/' + str(dmp_id)
+        link_full = dswurl + '/questionnaires/' + str(dmp_id) + '/questionnaire'
 
         # debug
         # print ('link full: {}'.format(link_full))
@@ -234,7 +234,7 @@ for i in data['_embedded']['questionnaires']:
                             ct["affiliation"] = {"name": affiliation_other_name,
                                                  "affiliation_id": {"name": affiliation_other_id, "type": "ror"}}
                         # HE
-                        if data_full['package']['kmId'] == 'root-he':
+                        if 'root-he' in data_full['packageId']:
                             if affiliation_node in data_full['replies']:
                                 affiliation_he = affiliation_node
                                 affiliation_he_name = data_full['replies'][affiliation_he]['value']['value'][
@@ -614,7 +614,7 @@ for i in data['_embedded']['questionnaires']:
                 storage_needs = 'unknown'
             md['storage_needs'] = storage_needs
 
-        if data_full['package']['kmId'] == 'root-he':
+        if 'root-he' in data_full['packageId']:
             if config.get('Paths', 'metadata.storage_needs_he') in data_full['replies']:
                 storage_needs_id = \
                     data_full['replies'][config.get('Paths', 'metadata.storage_needs_he')][
