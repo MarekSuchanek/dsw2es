@@ -1,0 +1,18 @@
+services:
+
+  elasticsearch:
+    image: elasticsearch:7.16.3
+    ports:
+      - 9200:9200
+    environment:
+      discovery.type: 'single-node'
+      xpack.security.enabled: 'true'
+      ELASTIC_PASSWORD: 'elastic123'
+      ES_JAVA_OPTS: '-Xmx2g -Xms2g'
+
+  kibana:
+    image: kibana:7.16.3
+    volumes:
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+    ports:
+      - 5601:5601
