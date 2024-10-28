@@ -21,11 +21,11 @@ esport = int(os.getenv("ELASTIC_PORT"))
 esindex = os.getenv("ELASTIC_INDEX_NAME")
 esuser = os.getenv("ELASTIC_USER")
 espw = os.getenv("ELASTIC_PW")
-dswurl = os.getenv("DSW_URL")
-dswuser = os.getenv("DSW_USER")
-dswpw = os.getenv("DSW_PW")
+dswurl = os.getenv("DSW_BASE_URL")
+dswapiurl = dswurl + '/wizard-api'
+dswprojecturl = dswurl + '/wizard/projects/'
+dswkey = os.getenv("DSW_API_KEY")
 logfile = os.getenv("LOGFILE")
-baseurl = os.getenv("BASEURL")
 
 # Read config
 config = configparser.ConfigParser()
@@ -44,25 +44,14 @@ logger.setLevel(logging.WARNING)
 
 logger.warning('Trying to update the ' + esindex + ' index.')
 
-# Authorize with DSW
-dsw_token = ''
-try:
-    dsw_authurl = dswurl + '/tokens'
-    auth_data = dict(email=dswuser, password=dswpw)
-    data_auth = requests.post(url=dsw_authurl, json=auth_data, headers={'Accept': 'application/json'}).text
-    data_auth = json.loads(data_auth)
-    dsw_token = data_auth['token']
-except requests.exceptions.HTTPError as e:
-    print('Could not authenticate with DSW, user: ' + dswuser + ' , existing.')
-    logger.error('Could not authenticate with DSW, user: ' + dswuser + ' , exiting: ' + e.response.text)
-    sys.exit(1)
-
+# Prepare DSW headers
 headers = {'Accept': 'application/json',
-           'Authorization': 'Bearer ' + dsw_token}
+           'Authorization': 'Bearer ' + dswkey}
 
 # Create new index (or replace existing)
 # Require elasticsearch >=7.16.3 to work with ES 6.x
-elastic = Elasticsearch([{'host': esurl, 'port': esport, 'use_ssl': True}], http_auth=(esuser, espw))
+use_ssl = esurl.startswith('https')
+elastic = Elasticsearch([{'host': esurl, 'port': esport, 'use_ssl': use_ssl}], http_auth=(esuser, espw))
 try:
     create_resp = elastic.indices.create(index=esindex, ignore=[400, 404])
 
@@ -80,11 +69,10 @@ except elasticsearch.exceptions.RequestError as e:
         sys.exit()
 
 # Request data from DSW as string
-dsw_geturl = dswurl + '/questionnaires?isTemplate=false&sort=createdAt%2Cdesc&size=500'
-data = requests.get(url=dsw_geturl, headers=headers).text
-
-# convert string to Json
-data = json.loads(data)
+dsw_geturl = dswapiurl + '/questionnaires?isTemplate=false&sort=createdAt%2Cdesc&size=500'
+resp = requests.get(url=dsw_geturl, headers=headers)
+resp.raise_for_status()
+data = resp.json()
 
 # debug
 # print(data)
@@ -122,7 +110,7 @@ for i in data['_embedded']['questionnaires']:
 
         d['title'] = dmp_name
         d['created'] = created_at
-        di = {"identifier": baseurl + dmp_id, "type": "url"}
+        di = {"identifier": dswprojecturl + dmp_id, "type": "url"}
 
         d['dmp_id'] = di
 
@@ -147,7 +135,7 @@ for i in data['_embedded']['questionnaires']:
             md['description'] = i['description']
 
         # request full doc from DSW
-        link_full = dswurl + '/questionnaires/' + str(dmp_id) + '/questionnaire'
+        link_full = dswapiurl + '/questionnaires/' + str(dmp_id) + '/questionnaire'
 
         # debug
         # print ('link full: {}'.format(link_full))

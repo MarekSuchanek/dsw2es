@@ -3,8 +3,8 @@ ELASTIC_PORT=9200
 ELASTIC_USER=elasticsearch-userid
 ELASTIC_PW=elasticsearch-password
 ELASTIC_INDEX_NAME=dsw-dmps-test
-DSW_URL=https://url-to-dsw-incl-port:3443
-DSW_USER=dsw-userid
-DSW_PW=dsw-password
-BASEURL=https://dsw-staging.ita.chalmers.se/wizard/projects/
+
+DSW_BASE_URL=https://dsw-staging.ita.chalmers.se
+DSW_API_KEY=dsw-api-key
+
 LOGFILE=dsw2es.log
