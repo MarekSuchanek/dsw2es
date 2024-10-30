@@ -1,153 +1,237 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import requests
-import json
-import sys
-import elasticsearch
-import uuid as uuid
-from elasticsearch import Elasticsearch
-import os
-from dotenv import load_dotenv
-import logging
 import configparser
-from datetime import datetime
+import datetime
+import logging
+import os
+import pathlib
+import sys
 import uuid
 
-# Read variables from dotenv
-load_dotenv()
-esurl = os.getenv("ELASTIC_URL")
-esport = int(os.getenv("ELASTIC_PORT"))
-esindex = os.getenv("ELASTIC_INDEX_NAME")
-esuser = os.getenv("ELASTIC_USER")
-espw = os.getenv("ELASTIC_PW")
-dswurl = os.getenv("DSW_BASE_URL")
-dswapiurl = dswurl + '/wizard-api'
-dswprojecturl = dswurl + '/wizard/projects/'
-dswkey = os.getenv("DSW_API_KEY")
-logfile = os.getenv("LOGFILE")
+import dotenv
+import elasticsearch
+import requests
 
-# Read config
-config = configparser.ConfigParser()
-config.read_file(open(r'dsw2es.conf'))
 
-# Create and configure logger
-logging.basicConfig(filename=logfile,
-                    format='%(asctime)s %(message)s',
-                    filemode='a')
+class Config:
+    ENCODING = 'utf-8'
+    MADMP_SCHEMA_URL = 'https://github.com/RDA-DMP-Common/RDA-DMP-Common-Standard/tree/master/examples/JSON/JSON-schema/1.1'
 
-# Creating an object
-logger = logging.getLogger()
+    ES_URL = os.getenv('ELASTIC_URL')
+    ES_PORT = int(os.getenv('ELASTIC_PORT'))
+    ES_INDEX = os.getenv('ELASTIC_INDEX_NAME')
+    ES_USERNAME = os.getenv('ELASTIC_USER')
+    ES_PASSWORD = os.getenv('ELASTIC_PW')
+    DSW_URL = os.getenv('DSW_BASE_URL')
+    DSW_API_URL = f'{DSW_URL}/wizard-api'
+    DSW_PROJECTS_URL = f'{DSW_URL}/wizard/projects/'
+    DSW_API_KEY = os.getenv('DSW_API_KEY')
+    LOG_FILE = os.getenv('LOGFILE', 'dsw2es.log')
+    LOG_LEVEL = os.getenv('LOGLEVEL', 'INFO')
+    CONFIG_FILE = os.getenv('CONFIG_FILE', 'dsw2es.conf')
+    LAST_RUN_FILE = os.getenv('LAST_RUN_FILE', 'lastrun.txt')
+    FULL_RUN = os.getenv('FULL_RUN', 'False').lower() in ['true', 'yes', '1']
 
-# Setting the threshold of logger to DEBUG
-logger.setLevel(logging.WARNING)
 
-logger.warning('Trying to update the ' + esindex + ' index.')
+    def __init__(self):
+        self.config = configparser.ConfigParser()
+        self.logger = None
+        self._init_logging()
+        self._load_config()
 
-# Prepare DSW headers
-headers = {'Accept': 'application/json',
-           'Authorization': 'Bearer ' + dswkey}
+    def _load_config(self):
+        file = pathlib.Path(self.CONFIG_FILE)
+        if not file.exists():
+            raise FileNotFoundError(f'Config file {self.CONFIG_FILE} not found.')
+        self.config.read(file)
 
-# Create new index (or replace existing)
-# Require elasticsearch >=7.16.3 to work with ES 6.x
-use_ssl = esurl.startswith('https')
-elastic = Elasticsearch([{'host': esurl, 'port': esport, 'use_ssl': use_ssl}], http_auth=(esuser, espw))
-try:
-    create_resp = elastic.indices.create(index=esindex, ignore=[400, 404])
+    def _init_logging(self):
+        logging.basicConfig(
+            filename=self.LOG_FILE,
+            format='%(asctime)s %(message)s',
+            filemode='a',
+        )
+        self.logger = logging.getLogger('DSW2ES')
+        self.logger.setLevel(self.LOG_LEVEL)
+        self.logger.addHandler(logging.StreamHandler(sys.stdout))
+        self.logger.warning(f'Trying to update the {self.ES_INDEX} index.')
 
-    # print(create_resp)
-    logger.info('Index ' + esindex + ' was successfully created.')
-    print('Index ' + esindex + ' was successfully created.')
-except elasticsearch.exceptions.RequestError as e:
-    if e.error == 'resource_already_exists_exception':
-        # print('We will ignore this')
-        pass  # Index already exists. Ignore, it will be recreated.
-    else:  # Other exception - raise it
-        logger.error('Index ' + esindex + ' could not be created: ' + e.error)
-        print('Index ' + esindex + ' could not be created: ' + e.error)
-        raise e
-        sys.exit()
+    @property
+    def es_hosts(self):
+        return [{
+            'host': self.ES_URL,
+            'port': self.ES_PORT,
+            'use_ssl': self.ES_URL.startswith('https')},
+        ]
 
-# Request data from DSW as string
-dsw_geturl = dswapiurl + '/questionnaires?isTemplate=false&sort=createdAt%2Cdesc&size=500'
-resp = requests.get(url=dsw_geturl, headers=headers)
-resp.raise_for_status()
-data = resp.json()
 
-# debug
-# print(data)
+class DSW2ES:
+    # TODO: exception handling
+    # TODO: code style
+    # TODO: unify logging
 
-dmp = {}
-count = 0
-madmp_schema = "https://github.com/RDA-DMP-Common/RDA-DMP-Common-Standard/tree/master/examples/JSON/JSON-schema/1.1"
+    def __init__(self, config: Config):
+        self.config = config
+        self.logger = config.logger
 
-for i in data['_embedded']['questionnaires']:
-    import_this = 'true'
-    is_outdated = 'false'
-    d = dict()
-    md = dict()
-    d['schema'] = madmp_schema
-    dmp_id = i['uuid']
-    created_at = i['createdAt']
-    if i['updatedAt']:
-        updated_at = i['updatedAt']
-        d['modified'] = updated_at
-    if 'state' in i:
-        state = i['state']
-        if state == 'Outdated':
-            is_outdated = 'true'
+        self.dsw_session = requests.Session()
+        self.dsw_session.headers.update({
+            'Accept': 'application/json',
+            'Authorization': f'Bearer {self.config.DSW_API_KEY}',
+        })
 
-    is_template = i['isTemplate']
-    dmp_name = i['name']
+        self.elastic = elasticsearch.Elasticsearch(
+            hosts=self.config.es_hosts,
+            http_auth=(self.config.ES_USERNAME, self.config.ES_PASSWORD),
+        )
 
-    # Which DMPs to include in index?
-    rules = [not is_template,
-             is_outdated == 'false']
-
-    if all(rules):
-        print('{}, {}'.format(dmp_id, dmp_name))
-        # Add to json output
-
-        d['title'] = dmp_name
-        d['created'] = created_at
-        di = {"identifier": dswprojecturl + dmp_id, "type": "url"}
-
-        d['dmp_id'] = di
-
-        if i['package']:
-            d[
-                'description'] = "This DMP has been created using Chalmers Data Stewardship Wizard (dsw.chalmers.se) " \
-                                 "and is based on the knowledge model " + \
-                                 i['package']['name'] + " (" + i['package']['id'] + ")."
-            if "swe" in i['package']['id']:
-                d['language'] = 'swe'
-            else:
-                d['language'] = 'eng'
-
-        md['id'] = dmp_id
-        if state:
-            md['state'] = state
-        if 'visibility' in i:
-            md['visibility'] = i['visibility']
-        if 'sharing' in i:
-            md['sharing'] = i['sharing']
-        if 'description' in i:
-            md['description'] = i['description']
-
-        # request full doc from DSW
-        link_full = dswapiurl + '/questionnaires/' + str(dmp_id) + '/questionnaire'
-
-        # debug
-        # print ('link full: {}'.format(link_full))
-
-        # Retrieve full DMP record from API
+    def run(self):
+        last_run_file = pathlib.Path(self.config.LAST_RUN_FILE)
         try:
-            data_full = requests.get(url=link_full, headers=headers).text
-            data_full = json.loads(data_full)
+            last_run_str = last_run_file.read_text(encoding=self.config.ENCODING)
+            last_run = datetime.datetime.fromisoformat(last_run_str)
+        except Exception:
+            last_run = None
+
+        if self.config.FULL_RUN:
+            last_run = None
+
+        new_last_run_str = str(datetime.datetime.now(tz=datetime.UTC).isoformat())
+        self._run(last_run)
+        last_run_file.write_text(new_last_run_str, encoding=self.config.ENCODING)
+
+    def _run(self, last_run_at=None):
+        # TODO: order by updatedAt and break instead of continue
+        self._prepare_es_index()
+
+        questionnaires = self._fetch_dsw_questionnaires()
+        for questionnaire in questionnaires:
+            # Check rules
+            state = questionnaire.get('state', 'unknown')
+            is_template = questionnaire['isTemplate']
+
+            if state == 'Outdated' or is_template:
+                self.logger.info('Skipping outdated or template DMP: %s', questionnaire['uuid'])
+                continue
+
+            updated_at = datetime.datetime.fromisoformat(questionnaire['updatedAt'])
+            if last_run_at is not None and updated_at <= last_run_at:
+                self.logger.info('Skipping DMP %s, not updated since last run.', questionnaire['uuid'])
+                continue
+
+            # Prepare data and metadata
+            data, metadata = dict(), dict()
+            self._questionnaire_basic(data, metadata, questionnaire)
+            questionnaire_full = self._fetch_dsw_questionnaire(questionnaire['uuid'])
+            self._questionnaire_details(data, metadata, questionnaire_full)
+            data = {
+                'dmp': data,
+                'metadata': metadata,
+            }
+
+            # Push to ES
+            self._push_dmp_to_es(questionnaire['uuid'], data)
+
+    def _prepare_es_index(self):
+        try:
+            self.elastic.indices.create(
+                index=self.config.ES_INDEX,
+                ignore=[400, 404],
+            )
+            self.config.logger.info(f'Index {self.config.ES_INDEX} was successfully created.')
+        except elasticsearch.exceptions.RequestError as e:
+            if e.error == 'resource_already_exists_exception':
+                pass
+            else:
+                self.config.logger.error(f'Index {self.config.ES_INDEX} could not be created: {e.error}')
+                raise e
+
+    def _push_dmp_to_es(self, dmp_id, data):
+        try:
+            response = self.elastic.index(
+                index=self.config.ES_INDEX,
+                doc_type='dmp',
+                id=dmp_id,
+                document=data,
+                ignore=[400, 404],
+            )
+        except elasticsearch.exceptions.RequestError as e:
+            if e.error == 'resource_already_exists_exception':
+                print(dmp_id + ' already exists.')
+                pass  # Doc already exists. Ignore, it will be updated.
+            else:  # Other exception - raise it
+                self.logger.error('Error when writing doc id: ' + dmp_id + ' to index.' + e.error)
+                print('Error when writing doc id: ' + dmp_id + ' to index.' + e.error)
+                raise e
+
+    def _fetch_dsw_questionnaires(self):
+        response = self.dsw_session.get(
+            url=f'{self.config.DSW_API_URL}/questionnaires',
+            params={
+                'isTemplate': 'false',
+                'sort': 'createdAt,desc',
+                'size': 500,
+            },
+        )
+        response.raise_for_status()
+        return response.json()['_embedded']['questionnaires']
+
+    def _fetch_dsw_questionnaire(self, dmp_id):
+        try:
+            response = self.dsw_session.get(
+                url=f'{self.config.DSW_API_URL}/questionnaires/{dmp_id}/questionnaire',
+            )
+            response.raise_for_status()
+            return response.json()
         except requests.exceptions.HTTPError as e:
             print('Could not retrieve record id: ' + dmp_id + ' , existing.')
-            logger.error('Could not retrieve record id: ' + dmp_id + ' , existing: ' + e.response.text)
+            self.config.logger.error('Could not retrieve record id: ' + dmp_id + ' , existing: ' + e.response.text)
             sys.exit(1)
+
+    def _questionnaire_basic(self, data, metadata, questionnaire):
+        data['schema'] = self.config.MADMP_SCHEMA_URL
+
+        dmp_id = questionnaire['uuid']
+        dmp_name = questionnaire['name']
+        created_at = questionnaire['createdAt']
+        updated_at = questionnaire['updatedAt']
+        state = questionnaire.get('state', 'unknown')
+
+        if updated_at:
+            data['modified'] = updated_at
+        data['title'] = dmp_name
+        data['created'] = created_at
+        data['dmp_id'] = {
+            'identifier': f'{self.config.DSW_PROJECTS_URL}/{dmp_id}',
+            'type': 'url',
+        }
+
+        if questionnaire['package']:
+            package_name = questionnaire['package']['name']
+            package_id = questionnaire['package']['id']
+            data['description'] = (f'This DMP has been created using Chalmers Data Stewardship Wizard (dsw.chalmers.se) '
+                                f'and is based on the knowledge model {package_name} (id: {package_id}).')
+            data['language'] = 'swe' if 'swe' in package_id else 'eng'
+
+        metadata['id'] = dmp_id
+        if state:
+            metadata['state'] = state
+        if 'visibility' in questionnaire:
+            metadata['visibility'] = questionnaire['visibility']
+        if 'sharing' in questionnaire:
+            metadata['sharing'] = questionnaire['sharing']
+        if 'description' in questionnaire:
+            metadata['description'] = questionnaire['description']
+        return data, metadata
+
+    def _questionnaire_details(self, data, metadata, questionnaire_full):
+        # TODO: this needs more refactoring
+        config = self.config.config
+        dmp_id = questionnaire_full['uuid']
+        data_full = questionnaire_full
+        d = data
+        md = metadata
 
         # Disclaimer
         if config.get('Paths', 'disclaimer') in data_full['replies']:
@@ -168,7 +252,6 @@ for i in data['_embedded']['questionnaires']:
             md['disclaimer_allow_sharing'] = 'missing / not answered'
 
         # Contact and contributor(s)
-
         if config.get('Paths', 'contributors') in data_full['replies']:
             contributors = data_full['replies'][
                 config.get('Paths', 'contributors')]
@@ -541,7 +624,7 @@ for i in data['_embedded']['questionnaires']:
 
         # Additional metadata (local)
 
-        md['indexed'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+        md['indexed'] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
 
         # DMP owner (for now eq to (first named) admin)
         md['dmp_owner'] = {}
@@ -637,40 +720,10 @@ for i in data['_embedded']['questionnaires']:
                 storage_needs = 'unknown'
             md['storage_needs'] = storage_needs
 
-        dmp['dmp'] = d
-        dmp['metadata'] = md
 
-        # convert to json
-        dmp_json = json.dumps(dmp)
+if __name__ == '__main__':
+    dotenv.load_dotenv()
 
-        # debug
-        #print(dmp_json)
-
-        # PUT (POST) update to ES index
-        # https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html
-        # https://kb.objectrocket.com/elasticsearch/how-to-index-elasticsearch-documents-using-the-python-client-library
-
-        if import_this == 'true':
-            try:
-                response = elastic.index(index=esindex, doc_type='dmp', id=dmp_id, document=dmp, ignore=[400, 404])
-                # print(str(dmp))
-                print('response: ' + str(response))
-                print(dmp_id + ' was imported!')
-            except elasticsearch.exceptions.RequestError as e:
-                if e.error == 'resource_already_exists_exception':
-                    print(dmp_id + ' already exists.')
-                    pass  # Doc already exists. Ignore, it will be updated.
-                else:  # Other exception - raise it
-                    logger.error('Error when writing doc id: ' + dmp_id + ' to index.' + e.error)
-                    print('Error when writing doc id: ' + dmp_id + ' to index.' + e.error)
-                    raise e
-                    sys.exit()
-        else:
-            print('DMP id ' + str(dmp_id) + ' was NOT imported.')
-
-        print('\n')
-        count += 1
-
-logger.warning('Successfully indexed ' + str(count) + ' items.')
-print('Successfully indexed ' + str(count) + ' items. Exiting now.')
-sys.exit()
+    config = Config()
+    dsw2es = DSW2ES(config)
+    dsw2es.run()
